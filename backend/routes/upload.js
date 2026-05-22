@@ -2,9 +2,9 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { createCanvas, loadImage } = require('canvas');
+// const { createCanvas, loadImage } = require('canvas');
 const jsQR = require('jsqr');
-
+const Jimp = require('jimp');
 const router = express.Router();
 const { merchants } = require('../models/db');
 
@@ -34,14 +34,15 @@ const upload = multer({
 // 解析二维码内容
 async function decodeQR(imagePath) {
   try {
-    const image = await loadImage(imagePath);
-    const canvas = createCanvas(image.width, image.height);
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(image, 0, 0);
-
-    const imageData = ctx.getImageData(0, 0, image.width, image.height);
-    const code = jsQR(imageData.data, image.width, image.height);
-
+    const image = await Jimp.read(imagePath);
+    const imageData = {
+      data: new Uint8ClampedArray(image.bitmap.data),
+      width: image.bitmap.width,
+      height: image.bitmap.height
+    };
+    
+    const code = jsQR(imageData.data, imageData.width, imageData.height);
+    
     if (code) {
       return {
         content: code.data,
