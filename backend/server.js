@@ -52,8 +52,8 @@ app.get('/merchant', (req, res) => {
 });
 
 // 404处理
-app.use((req, res) => {
-  res.status(404).json({ error: 'Not Found' });
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/public/index.html'));
 });
 
 app.listen(PORT, () => {
