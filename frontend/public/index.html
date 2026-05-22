@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QR支付系统 - 商户管理</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px 20px;
+      text-align: center;
+    }
+    .header h1 { font-size: 28px; margin-bottom: 8px; }
+    .header p { opacity: 0.9; font-size: 14px; }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+    .card-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-label {
+      display: block;
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+    .form-input, .form-select {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.3s;
+    }
+    .form-input:focus, .form-select:focus {
+      border-color: #667eea;
+    }
+    .file-input-wrapper {
+      position: relative;
+      border: 2px dashed #d0d0d0;
+      border-radius: 12px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .file-input-wrapper:hover {
+      border-color: #667eea;
+      background: #f8f9ff;
+    }
+    .file-input-wrapper.has-file {
+      border-color: #52c41a;
+      background: #f6ffed;
+    }
+    .file-input {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+    .upload-preview {
+      max-width: 200px;
+      max-height: 200px;
+      border-radius: 8px;
+      margin-top: 10px;
+    }
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    }
+    .btn-success {
+      background: #52c41a;
+      color: white;
+    }
+    .btn-danger {
+      background: #ff4d4f;
+      color: white;
+    }
+    .style-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .style-card {
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      padding: 15px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .style-card:hover {
+      border-color: #667eea;
+      transform: translateY(-2px);
+    }
+    .style-card.active {
+      border-color: #667eea;
+      background: #f0f5ff;
+    }
+    .style-preview {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 10px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      color: white;
+      font-weight: bold;
+    }
+    .style-name {
+      font-size: 13px;
+      color: #333;
+    }
+    .color-picker-group {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .color-input {
+      width: 50px;
+      height: 40px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .shape-options {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .shape-btn {
+      padding: 8px 16px;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      background: white;
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .shape-btn.active {
+      border-color: #667eea;
+      background: #f0f5ff;
+      color: #667eea;
+    }
+    .result-section {
+      text-align: center;
+      padding: 30px;
+    }
+    .result-qr {
+      max-width: 300px;
+      border-radius: 16px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+      margin-bottom: 20px;
+    }
+    .result-url {
+      background: #f5f5f5;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      word-break: break-all;
+      margin-bottom: 15px;
+      font-family: monospace;
+    }
+    .merchant-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+    }
+    .merchant-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      transition: transform 0.3s;
+    }
+    .merchant-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    }
+    .merchant-card img {
+      width: 100%;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    .merchant-card h3 {
+      font-size: 16px;
+      margin-bottom: 8px;
+    }
+    .merchant-card .meta {
+      font-size: 13px;
+      color: #999;
+      margin-bottom: 12px;
+    }
+    .merchant-card .actions {
+      display: flex;
+      gap: 8px;
+    }
+    .merchant-card .actions button {
+      flex: 1;
+      padding: 8px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #333;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      z-index: 1000;
+      transform: translateX(150%);
+      transition: transform 0.3s;
+    }
+    .toast.show {
+      transform: translateX(0);
+    }
+    .tab-nav {
+      display: flex;
+      gap: 5px;
+      margin-bottom: 20px;
+      background: #f5f5f5;
+      padding: 5px;
+      border-radius: 10px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      background: transparent;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s;
+    }
+    .tab-btn.active {
+      background: white;
+      color: #667eea;
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    .config-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .toggle-switch {
+      width: 44px;
+      height: 24px;
+      background: #d9d9d9;
+      border-radius: 12px;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .toggle-switch.active {
+      background: #52c41a;
+    }
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: white;
+      border-radius: 50%;
+      top: 2px;
+      left: 2px;
+      transition: transform 0.3s;
+    }
+    .toggle-switch.active::after {
+      transform: translateX(20px);
+    }
+  </style>
+
+  
+  <!-- 三端通用适配 -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="format-detection" content="telephone=no">
+
+  <script>
+    // 平台检测
+    const Platform = {
+      isIOS: () => /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream,
+      isAndroid: () => /Android/.test(navigator.userAgent),
+      isMobile: () => /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
+      isDesktop: () => !Platform.isMobile(),
+      isElectron: () => typeof window.electronAPI !== 'undefined',
+      isCapacitor: () => typeof window.Capacitor !== 'undefined' && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform(),
+      isWechat: () => /MicroMessenger/.test(navigator.userAgent),
+      name: () => {
+        if (Platform.isElectron()) return 'electron';
+        if (Platform.isCapacitor()) return 'capacitor';
+        if (Platform.isIOS()) return 'ios';
+        if (Platform.isAndroid()) return 'android';
+        return 'web';
+      }
+    };
+
+    // 根据平台调整UI
+    document.addEventListener('DOMContentLoaded', () => {
+      const body = document.body;
+      body.classList.add('platform-' + Platform.name());
+
+      if (Platform.isDesktop()) {
+        body.classList.add('desktop-mode');
+        // 桌面端增加边距
+        document.querySelector('.container').style.maxWidth = '1000px';
+      }
+
+      if (Platform.isElectron()) {
+        body.classList.add('electron-mode');
+        // 隐藏浏览器特有的元素
+        const tips = document.querySelector('.tips');
+        if (tips) tips.innerHTML = '<p>桌面版 · 支持拖拽文件上传</p>';
+      }
+
+      // 微信内提示
+      if (Platform.isWechat()) {
+        const wechatTip = document.createElement('div');
+        wechatTip.style.cssText = 'background:#07C160;color:white;padding:10px;text-align:center;font-size:14px;position:fixed;top:0;left:0;right:0;z-index:9999;';
+        wechatTip.innerHTML = '⚠️ 微信内无法直接跳转支付宝，请点击右上角用浏览器打开';
+        document.body.appendChild(wechatTip);
+        setTimeout(() => wechatTip.remove(), 5000);
+      }
+    });
+
+    // 通用分享/保存函数
+    async function universalShare(data) {
+      if (Platform.isElectron()) {
+        // 桌面端：打开系统分享或复制
+        await window.electronAPI.openExternal(data.url || '');
+        showToast('链接已打开');
+      } else if (Platform.isCapacitor() && window.NativeShare) {
+        // 移动端原生分享
+        await window.NativeShare.share(data);
+      } else if (navigator.share) {
+        // Web Share API
+        await navigator.share(data);
+      } else {
+        // 降级：复制到剪贴板
+        await navigator.clipboard.writeText(data.url || data.text);
+        showToast('已复制到剪贴板');
+      }
+    }
+
+    // 通用文件保存
+    async function universalSaveFile(base64Data, filename) {
+      if (Platform.isElectron()) {
+        const result = await window.electronAPI.saveFile({ data: base64Data, filename });
+        if (result.success) {
+          showToast('已保存到: ' + result.path);
+        }
+      } else if (Platform.isCapacitor() && window.NativeFS) {
+        await window.NativeFS.writeFile({
+          path: filename,
+          data: base64Data,
+          directory: 'CACHE',
+          recursive: true
+        });
+        showToast('已保存到相册');
+      } else {
+        // Web降级
+        const link = document.createElement('a');
+        link.download = filename;
+        link.href = base64Data;
+        link.click();
+      }
+    }
+
+    // 通用文件选择（桌面端增强）
+    async function universalSelectFile() {
+      if (Platform.isElectron()) {
+        const paths = await window.electronAPI.selectFile();
+        return paths;
+      }
+      // 移动端使用原生input
+      return new Promise((resolve) => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = (e) => {
+          resolve(Array.from(e.target.files).map(f => f.path || f.name));
+        };
+        input.click();
+      });
+    }
+
+    // 支付跳转适配
+    async function universalPayRedirect(url, fallbackHtml) {
+      if (Platform.isElectron()) {
+        // 桌面端：打开系统浏览器
+        await window.electronAPI.openExternal(url);
+        showToast('请在浏览器中完成支付');
+      } else if (Platform.isIOS() || Platform.isAndroid()) {
+        // 移动端：直接跳转
+        window.location.href = url;
+        setTimeout(() => {
+          if (fallbackHtml) {
+            document.getElementById('fallback').innerHTML = fallbackHtml;
+            document.getElementById('fallback').classList.add('show');
+          }
+        }, 2500);
+      } else {
+        // Web端
+        window.open(url, '_blank');
+      }
+    }
+  </script>
+
+  <style>
+    /* 桌面端样式优化 */
+    .desktop-mode .container {
+      padding: 40px 20px;
+    }
+    .desktop-mode .card {
+      box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+    }
+    .desktop-mode .pay-card {
+      max-width: 450px;
+    }
+
+    /* 移动端安全区域适配 */
+    @supports (padding-top: env(safe-area-inset-top)) {
+      .platform-ios .header {
+        padding-top: calc(30px + env(safe-area-inset-top));
+      }
+      .platform-ios .container {
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+    }
+
+    /* 微信内特殊样式 */
+    .platform-wechat .pay-btn {
+      background: linear-gradient(135deg, #07C160 0%, #2AA876 100%);
+    }
+
+    /* 滚动条美化（桌面端） */
+    .desktop-mode ::-webkit-scrollbar {
+      width: 8px;
+    }
+    .desktop-mode ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 4px;
+    }
+    .desktop-mode ::-webkit-scrollbar-thumb {
+      background: #888;
+      border-radius: 4px;
+    }
+    .desktop-mode ::-webkit-scrollbar-thumb:hover {
+      background: #555;
+    }
+  </style>
+
+</head>

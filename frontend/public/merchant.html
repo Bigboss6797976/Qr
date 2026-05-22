@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>商户管理 - QR支付系统</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+    }
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .header h1 { font-size: 20px; }
+    .back-btn {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+    .card-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 12px;
+    }
+    .stat-value {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+    .stat-label {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    .config-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 0;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .config-label {
+      font-size: 15px;
+      color: #333;
+    }
+    .config-desc {
+      font-size: 13px;
+      color: #999;
+      margin-top: 4px;
+    }
+    .toggle-switch {
+      width: 44px;
+      height: 24px;
+      background: #d9d9d9;
+      border-radius: 12px;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.3s;
+      flex-shrink: 0;
+    }
+    .toggle-switch.active {
+      background: #52c41a;
+    }
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: white;
+      border-radius: 50%;
+      top: 2px;
+      left: 2px;
+      transition: transform 0.3s;
+    }
+    .toggle-switch.active::after {
+      transform: translateX(20px);
+    }
+    .order-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .order-table th {
+      text-align: left;
+      padding: 12px;
+      font-size: 13px;
+      color: #666;
+      border-bottom: 1px solid #f0f0f0;
+      font-weight: 500;
+    }
+    .order-table td {
+      padding: 12px;
+      font-size: 14px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .status-badge {
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .status-paid { background: #f6ffed; color: #52c41a; }
+    .status-pending { background: #fff7e6; color: #fa8c16; }
+    .status-refund { background: #fff1f0; color: #ff4d4f; }
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .btn-primary {
+      background: #667eea;
+      color: white;
+    }
+    .btn-success {
+      background: #52c41a;
+      color: white;
+    }
+    .btn-danger {
+      background: #ff4d4f;
+      color: white;
+    }
+    .btn-sm {
+      padding: 4px 10px;
+      font-size: 12px;
+    }
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #333;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      z-index: 1000;
+      transform: translateX(150%);
+      transition: transform 0.3s;
+    }
+    .toast.show {
+      transform: translateX(0);
+    }
+    .empty-state {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+    }
+    .channel-card {
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .channel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .channel-type {
+      font-weight: 600;
+      color: #333;
+    }
+    .channel-status {
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+    }
+    .channel-status.active { background: #f6ffed; color: #52c41a; }
+    .channel-status.inactive { background: #f5f5f5; color: #999; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <button class="back-btn" onclick="goBack()">← 返回</button>
+    <h1>商户管理</h1>
+    <div style="width:80px;"></div>
+  </div>
+
+  <div class="container">
+    <!-- 统计卡片 -->
+    <div class="stats-grid" id="statsGrid"></div>
+
+    <!-- 商户配置 -->
+    <div class="card">
+      <div class="card-title">⚙️ 商户配置</div>
+      <div id="configList"></div>
+    </div>
+
+    <!-- 支付通道 -->
+    <div class="card">
+      <div class="card-title">💳 支付通道（一码多付）</div>
+      <div id="channelList"></div>
+      <button class="btn btn-primary" style="margin-top:10px;" onclick="addChannel()">+ 添加通道</button>
+    </div>
+
+    <!-- 订单列表 -->
+    <div class="card">
+      <div class="card-title">📋 订单记录</div>
+      <div id="orderList"></div>
+    </div>
+
+    <!-- 退款管理 -->
+    <div class="card">
+      <div class="card-title">🔄 退款申请</div>
+      <div id="refundList"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const merchantId = urlParams.get('id');
+
+    if (!merchantId) {
+      alert('缺少商户ID');
+      window.location.href = '/';
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    function goBack() {
+      window.location.href = '/';
+    }
+
+    // 加载商户数据
+    async function loadMerchant() {
+      try {
+        // 加载商户信息
+        const merchantRes = await fetch(`/api/merchant/${merchantId}`);
+        const merchant = await merchantRes.json();
+
+        // 加载统计
+        const statsRes = await fetch(`/api/order/stats/${merchantId}`);
+        const stats = await statsRes.json();
+
+        renderStats(stats);
+        renderConfig(merchant);
+        renderChannels(merchant);
+
+        // 加载订单
+        const ordersRes = await fetch(`/api/order/merchant/${merchantId}`);
+        const orders = await ordersRes.json();
+        renderOrders(orders.data);
+
+        // 加载退款
+        const refundsRes = await fetch(`/api/order/refunds/${merchantId}`);
+        const refunds = await refundsRes.json();
+        renderRefunds(refunds.data);
+
+      } catch (e) {
+        console.error('Load merchant error:', e);
+        showToast('加载失败');
+      }
+    }
+
+    function renderStats(stats) {
+      document.getElementById('statsGrid').innerHTML = `
+        <div class="stat-card">
+          <div class="stat-value">${stats.totalOrders}</div>
+          <div class="stat-label">总订单</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">¥${stats.paidAmount.toFixed(2)}</div>
+          <div class="stat-label">已收金额</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${stats.todayOrders}</div>
+          <div class="stat-label">今日订单</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${stats.pendingRefunds}</div>
+          <div class="stat-label">待处理退款</div>
+        </div>
+      `;
+    }
+
+    function renderConfig(merchant) {
+      const configs = [
+        { key: 'allowRefund', label: '允许退款', desc: '开启后用户可申请退款，需手动处理', value: merchant.allowRefund },
+        { key: 'allowCustomAmount', label: '自定义金额', desc: '允许用户输入任意金额', value: merchant.allowCustomAmount !== false },
+        { key: 'allowRemark', label: '允许备注', desc: '用户可添加支付备注', value: merchant.allowRemark !== false }
+      ];
+
+      document.getElementById('configList').innerHTML = configs.map(c => `
+        <div class="config-item">
+          <div>
+            <div class="config-label">${c.label}</div>
+            <div class="config-desc">${c.desc}</div>
+          </div>
+          <div class="toggle-switch ${c.value ? 'active' : ''}" onclick="toggleConfig('${c.key}', this)"></div>
+        </div>
+      `).join('');
+    }
+
+    async function toggleConfig(key, el) {
+      const isActive = el.classList.contains('active');
+      el.classList.toggle('active');
+
+      try {
+        await fetch(`/api/merchant/${merchantId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ [key]: !isActive })
+        });
+        showToast('设置已更新');
+      } catch (e) {
+        showToast('更新失败');
+        el.classList.toggle('active');
+      }
+    }
+
+    function renderChannels(merchant) {
+      const channels = merchant.channelInfo || [];
+      if (channels.length === 0) {
+        document.getElementById('channelList').innerHTML = '<div class="empty-state">暂无支付通道</div>';
+        return;
+      }
+
+      document.getElementById('channelList').innerHTML = channels.map(c => `
+        <div class="channel-card">
+          <div class="channel-header">
+            <div>
+              <span class="channel-type">${c.type === 'alipay' ? '支付宝' : '微信支付'}</span>
+              <span style="font-size:12px;color:#999;margin-left:10px;">权重: ${c.weight}</span>
+            </div>
+            <span class="channel-status ${c.status}">${c.status === 'active' ? '正常' : '停用'}</span>
+          </div>
+          <div style="font-size:13px;color:#666;">
+            日限额: ${c.dailyLimit > 0 ? '¥' + c.dailyLimit : '无限制'} · 
+            今日收款: ¥${c.todayAmount || 0}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderOrders(orders) {
+      if (!orders || orders.length === 0) {
+        document.getElementById('orderList').innerHTML = '<div class="empty-state">暂无订单记录</div>';
+        return;
+      }
+
+      document.getElementById('orderList').innerHTML = `
+        <table class="order-table">
+          <thead>
+            <tr>
+              <th>订单号</th>
+              <th>金额</th>
+              <th>支付方式</th>
+              <th>状态</th>
+              <th>时间</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${orders.map(o => `
+              <tr>
+                <td>${o.orderNo}</td>
+                <td>¥${o.amount}</td>
+                <td>${o.payType === 'alipay' ? '支付宝' : '微信'}</td>
+                <td><span class="status-badge status-${o.status}">${getStatusText(o.status)}</span></td>
+                <td>${new Date(o.createdAt).toLocaleString()}</td>
+                <td>
+                  ${o.status === 'paid' ? `<button class="btn btn-danger btn-sm" onclick="handleRefund('${o.orderNo}')">退款</button>` : '-'}
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function getStatusText(status) {
+      const map = {
+        'pending': '待支付',
+        'paid': '已支付',
+        'refund_pending': '退款中',
+        'refund_approved': '已同意退款',
+        'refund_rejected': '拒绝退款'
+      };
+      return map[status] || status;
+    }
+
+    function renderRefunds(refunds) {
+      if (!refunds || refunds.length === 0) {
+        document.getElementById('refundList').innerHTML = '<div class="empty-state">暂无退款申请</div>';
+        return;
+      }
+
+      document.getElementById('refundList').innerHTML = `
+        <table class="order-table">
+          <thead>
+            <tr>
+              <th>订单号</th>
+              <th>金额</th>
+              <th>原因</th>
+              <th>状态</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${refunds.map(r => `
+              <tr>
+                <td>${r.orderNo}</td>
+                <td>¥${r.amount}</td>
+                <td>${r.reason}</td>
+                <td><span class="status-badge status-${r.status === 'pending' ? 'pending' : r.status === 'approved' ? 'paid' : 'refund'}">${getRefundStatusText(r.status)}</span></td>
+                <td>
+                  ${r.status === 'pending' ? `
+                    <button class="btn btn-success btn-sm" onclick="approveRefund('${r.id}')">同意</button>
+                    <button class="btn btn-danger btn-sm" onclick="rejectRefund('${r.id}')">拒绝</button>
+                  ` : '-'}
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    function getRefundStatusText(status) {
+      const map = {
+        'pending': '待处理',
+        'approved': '已同意',
+        'rejected': '已拒绝',
+        'completed': '已完成'
+      };
+      return map[status] || status;
+    }
+
+    async function handleRefund(orderNo) {
+      if (!confirm('确定对此订单发起退款？')) return;
+      try {
+        const res = await fetch(`/api/order/refund/${orderNo}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reason: '商户主动退款' })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('退款申请已提交');
+          loadMerchant();
+        } else {
+          showToast(data.error || '退款失败');
+        }
+      } catch (e) {
+        showToast('操作失败');
+      }
+    }
+
+    async function approveRefund(refundId) {
+      try {
+        const res = await fetch(`/api/order/refund/handle/${refundId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'approve' })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('已同意退款，请手动转账');
+          loadMerchant();
+        }
+      } catch (e) {
+        showToast('操作失败');
+      }
+    }
+
+    async function rejectRefund(refundId) {
+      const reason = prompt('请输入拒绝原因（可选）：');
+      try {
+        const res = await fetch(`/api/order/refund/handle/${refundId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'reject', rejectReason: reason })
+        });
+        const data = await res.json();
+        if (data.success) {
+          showToast('已拒绝退款');
+          loadMerchant();
+        }
+      } catch (e) {
+        showToast('操作失败');
+      }
+    }
+
+    function addChannel() {
+      alert('添加通道功能：上传新的收款码图片，系统会自动解析并添加为新的支付通道。');
+    }
+
+    // 初始化
+    loadMerchant();
+  </script>
+</body>
+</html>

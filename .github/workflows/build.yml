@@ -1,0 +1,177 @@
+name: CI/CD - Build All Platforms
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  # 1. 构建 Web 并测试
+  build-web:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Start server & test
+      run: |
+        npm start &
+        sleep 5
+        curl -f http://localhost:3000/health || exit 1
+
+    - name: Upload web assets
+      uses: actions/upload-artifact@v4
+      with:
+        name: web-assets
+        path: frontend/public/
+
+  # 2. 构建 Android APK
+  build-android:
+    runs-on: ubuntu-latest
+    needs: build-web
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Sync Capacitor
+      run: npx cap sync android
+
+    - name: Build Android
+      run: |
+        cd android
+        chmod +x gradlew
+        ./gradlew assembleRelease
+
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: android-apk
+        path: android/app/build/outputs/apk/release/*.apk
+
+  # 3. 构建 Electron (Win/Mac/Linux)
+  build-electron:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    needs: build-web
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: |
+        npm ci
+        cd electron && npm ci
+
+    - name: Build Electron
+      run: |
+        cd electron
+        if [ "$RUNNER_OS" == "Linux" ]; then
+          npm run dist:linux
+        elif [ "$RUNNER_OS" == "macOS" ]; then
+          npm run dist:mac
+        else
+          npm run dist:win
+        fi
+      shell: bash
+
+    - name: Upload Electron builds
+      uses: actions/upload-artifact@v4
+      with:
+        name: electron-${{ matrix.os }}
+        path: |
+          electron/dist/*.exe
+          electron/dist/*.dmg
+          electron/dist/*.AppImage
+          electron/dist/*.deb
+          electron/dist/*.zip
+        if-no-files-found: ignore
+
+  # 4. 构建 iOS (需要 macOS)
+  build-ios:
+    runs-on: macos-latest
+    needs: build-web
+    if: github.event_name == 'workflow_dispatch'  # 手动触发，需要签名
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Setup CocoaPods
+      run: |
+        sudo gem install cocoapods
+        cd ios/App && pod install
+
+    - name: Build iOS
+      run: |
+        cd ios/App
+        xcodebuild -workspace App.xcworkspace           -scheme App           -configuration Release           -destination "generic/platform=iOS"           archive -archivePath build/App.xcarchive
+
+    - name: Upload iOS archive
+      uses: actions/upload-artifact@v4
+      with:
+        name: ios-archive
+        path: ios/App/build/*.xcarchive
+
+  # 5. 发布 Release (仅 tag 推送时)
+  release:
+    runs-on: ubuntu-latest
+    needs: [build-web, build-android, build-electron]
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          artifacts/android-apk/*.apk
+          artifacts/electron-ubuntu-latest/*
+          artifacts/electron-windows-latest/*
+          artifacts/electron-macos-latest/*
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>扫码支付 - <%= merchant.name %></title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    .pay-card {
+      background: white;
+      border-radius: 20px;
+      width: 100%;
+      max-width: 400px;
+      padding: 30px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .merchant-info {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+    .avatar {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid #667eea;
+      margin-bottom: 12px;
+    }
+    .merchant-name {
+      font-size: 20px;
+      font-weight: 600;
+      color: #333;
+    }
+    .merchant-id {
+      font-size: 12px;
+      color: #999;
+      margin-top: 4px;
+    }
+    .amount-section {
+      background: #f8f9fa;
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .amount-label {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 10px;
+    }
+    .amount-input-wrapper {
+      display: flex;
+      align-items: center;
+      border-bottom: 2px solid #e0e0e0;
+      padding-bottom: 10px;
+    }
+    .currency {
+      font-size: 36px;
+      font-weight: 300;
+      color: #333;
+      margin-right: 10px;
+    }
+    .amount-input {
+      flex: 1;
+      font-size: 36px;
+      font-weight: 600;
+      border: none;
+      outline: none;
+      background: transparent;
+      color: #333;
+      width: 100%;
+    }
+    .amount-input::placeholder {
+      color: #ccc;
+    }
+    .quick-amounts {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+      flex-wrap: wrap;
+    }
+    .quick-btn {
+      padding: 8px 20px;
+      border: 1px solid #667eea;
+      border-radius: 20px;
+      background: white;
+      color: #667eea;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .quick-btn:hover, .quick-btn.active {
+      background: #667eea;
+      color: white;
+    }
+    .pay-methods {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .method-btn {
+      flex: 1;
+      padding: 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 12px;
+      background: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-size: 15px;
+      transition: all 0.3s;
+    }
+    .method-btn.active {
+      border-color: #1677FF;
+      background: #e6f7ff;
+      color: #1677FF;
+    }
+    .method-btn.wechat.active {
+      border-color: #07C160;
+      background: #e6f7ed;
+      color: #07C160;
+    }
+    .method-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: bold;
+    }
+    .alipay-icon { background: #1677FF; color: white; }
+    .wechat-icon { background: #07C160; color: white; }
+    .remark-input {
+      width: 100%;
+      padding: 12px 15px;
+      border: 1px solid #e0e0e0;
+      border-radius: 12px;
+      font-size: 14px;
+      margin-bottom: 20px;
+      outline: none;
+    }
+    .remark-input:focus {
+      border-color: #667eea;
+    }
+    .pay-btn {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .pay-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    }
+    .pay-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .fallback-section {
+      margin-top: 20px;
+      padding: 20px;
+      background: #fff8e6;
+      border-radius: 12px;
+      display: none;
+    }
+    .fallback-section.show {
+      display: block;
+    }
+    .tips {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 12px;
+      color: #999;
+    }
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 20px;
+    }
+    .loading.show {
+      display: block;
+    }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 10px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .toast {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 15px 30px;
+      border-radius: 8px;
+      font-size: 14px;
+      z-index: 1000;
+      display: none;
+    }
+    .toast.show {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="pay-card">
+    <div class="merchant-info">
+      <img src="<%= merchant.avatar %>" class="avatar" alt="头像" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2270%22 height=%2270%22><rect width=%2270%22 height=%2270%22 fill=%22%23667eea%22/><text x=%2235%22 y=%2240%22 font-size=%2230%22 fill=%22white%22 text-anchor=%22middle%22>商</text></svg>'">
+      <div class="merchant-name"><%= merchant.name %></div>
+      <div class="merchant-id">ID: <%= merchant.id %></div>
+    </div>
+
+    <div class="amount-section">
+      <div class="amount-label">支付金额</div>
+      <div class="amount-input-wrapper">
+        <span class="currency">¥</span>
+        <input type="number" class="amount-input" id="amount" placeholder="0.00" step="0.01" value="<%= defaultAmount %>">
+      </div>
+      <div class="quick-amounts">
+        <button class="quick-btn" data-amount="10">10元</button>
+        <button class="quick-btn" data-amount="50">50元</button>
+        <button class="quick-btn" data-amount="100">100元</button>
+        <button class="quick-btn" data-amount="200">200元</button>
+        <button class="quick-btn" data-amount="500">500元</button>
+      </div>
+    </div>
+
+    <div class="pay-methods">
+      <% if (alipayUserId || alipayQrUrl) { %>
+      <button class="method-btn active" data-type="alipay">
+        <span class="method-icon alipay-icon">支</span>
+        支付宝
+      </button>
+      <% } %>
+      <% if (wechatQrContent) { %>
+      <button class="method-btn wechat <%= !alipayUserId && !alipayQrUrl ? 'active' : '' %>" data-type="wechat">
+        <span class="method-icon wechat-icon">微</span>
+        微信支付
+      </button>
+      <% } %>
+    </div>
+
+    <% if (allowRemark) { %>
+    <input type="text" class="remark-input" id="remark" placeholder="添加备注（可选）">
+    <% } %>
+
+    <button class="pay-btn" id="payBtn" onclick="initiatePay()">
+      确认支付
+    </button>
+
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p>正在唤起支付...</p>
+    </div>
+
+    <div class="fallback-section" id="fallback"></div>
+
+    <div class="tips">
+      <p>支付完成后请返回此页面确认</p>
+      <p style="margin-top:5px;">安全支付 · 不保存密码</p>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const merchantId = '<%= merchant.id %>';
+    const sessionId = '<%= sessionId %>';
+    let currentPayType = document.querySelector('.method-btn.active')?.dataset.type || 'alipay';
+
+    // 快捷金额
+    document.querySelectorAll('.quick-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.quick-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('amount').value = btn.dataset.amount;
+      });
+    });
+
+    // 支付方式切换
+    document.querySelectorAll('.method-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.method-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentPayType = btn.dataset.type;
+      });
+    });
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    async function initiatePay() {
+      const amount = document.getElementById('amount').value;
+      const remark = document.getElementById('remark')?.value || '';
+
+      if (!amount || parseFloat(amount) <= 0) {
+        showToast('请输入有效金额');
+        return;
+      }
+
+      const btn = document.getElementById('payBtn');
+      const loading = document.getElementById('loading');
+      btn.disabled = true;
+      loading.classList.add('show');
+
+      try {
+        const res = await fetch('/api/payment/initiate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            merchantId,
+            amount: parseFloat(amount),
+            payType: currentPayType,
+            remark,
+            sessionId
+          })
+        });
+
+        const data = await res.json();
+
+        if (!data.success) {
+          showToast(data.error || '支付发起失败');
+          btn.disabled = false;
+          loading.classList.remove('show');
+          return;
+        }
+
+        // 尝试唤起APP
+        if (data.redirectUrl) {
+          window.location.href = data.redirectUrl;
+
+          // 检测是否跳转成功
+          setTimeout(() => {
+            if (!document.hidden) {
+              // 未跳转成功，显示备用方案
+              if (data.fallbackHtml) {
+                const fallback = document.getElementById('fallback');
+                fallback.innerHTML = data.fallbackHtml;
+                fallback.classList.add('show');
+              }
+              btn.disabled = false;
+              loading.classList.remove('show');
+            }
+          }, 2500);
+        } else if (data.fallbackHtml) {
+          // 直接显示备用方案（微信）
+          const fallback = document.getElementById('fallback');
+          fallback.innerHTML = data.fallbackHtml;
+          fallback.classList.add('show');
+          btn.disabled = false;
+          loading.classList.remove('show');
+        }
+
+      } catch (e) {
+        showToast('网络错误，请重试');
+        btn.disabled = false;
+        loading.classList.remove('show');
+      }
+    }
+
+    // 页面可见性变化监听（用户从支付APP返回）
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        // 用户返回，可以查询订单状态
+        console.log('User returned from payment app');
+      }
+    });
+  </script>
+</body>
+</html>
