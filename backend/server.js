@@ -8,26 +8,47 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
 
-// 中间件
 app.use(cors());
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
+
+// 静态文件目录（修复路径）
 app.use(express.static(path.join(__dirname, '../frontend/public')));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
-app.use('/styled-qr', express.static(path.join(__dirname, '../styled-qr')));
+app.use('/styled-urls', express.static(path.join(__dirname, '../styled-urls')));
 
-// 设置模板引擎
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
-// 全局变量
 global.roundRobinIndex = 0;
 
-// 确保数据库目录存在
 const dbDir = path.join(__dirname, '../database');
 if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
 
-// 路由
+// 根路由 - 返回首页
+app.get('/', (req, res) => {
+    const indexPath = path.join(__dirname, '../frontend/public/index.html');
+    if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+    } else {
+        res.status(404).send(`Index not found at: ${indexPath}`);
+    }
+});
+
+app.get('/merchant', (req, res) => {
+    const merchantPath = path.join(__dirname, '../frontend/public/merchant.html');
+    if (fs.existsSync(merchantPath)) {
+        res.sendFile(merchantPath);
+    } else {
+        res.status(404).send(`Merchant page not found at: ${merchantPath}`);
+    }
+});
+
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// API 路由
 app.use('/api/upload', require('./routes/upload'));
 app.use('/api/beautify', require('./routes/beautify'));
 app.use('/api/payment', require('./routes/payment'));
@@ -36,30 +57,14 @@ app.use('/api/merchant', require('./routes/merchant'));
 app.use('/pay', require('./routes/paypage'));
 app.use('/admin', require('./routes/admin'));
 
-// 健康检查
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
-// 前端主页面
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/public/index.html'));
-});
-
-// 商户管理页面
-app.get('/merchant', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/public/merchant.html'));
-});
-
-// 404处理
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '../frontend/public/index.html'));
+app.use((req, res) => {
+    res.status(404).send(`Route ${req.path} not found`);
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 QR Payment System running on ${BASE_URL}`);
-  console.log(`📁 Upload directory: ${path.join(__dirname, '../uploads')}`);
-  console.log(`🎨 Styled QR directory: ${path.join(__dirname, '../styled-qr')}`);
+    console.log(`QR Payment System running on ${BASE_URL}`);
+    console.log(`Upload directory: ${path.join(__dirname, '../uploads')}`);
+    console.log(`Styled QR directory: ${path.join(__dirname, '../styled-urls')}`);
 });
 
 module.exports = app;
